@@ -9,9 +9,9 @@
 ```
 TicketSales.sln
   Shared/            общий код: ошибки, in-memory хранилище, middleware
-  BookingService/    реальный сервис  (владелец: Человек 1)
-  PaymentService/    реальный сервис  (владелец: Человек 2)
-  ExternalMocks/     моки внешних зависимостей (владелец: Человек 3)
+  BookingService/    реальный сервис  (владелец: Юля, ветка: booking)
+  PaymentService/    реальный сервис  (владелец: Саша, ветка: payment)
+  ExternalMocks/     моки внешних зависимостей (владелец: Лиля, ветка: mocks)
 ```
 
 Каждый сервис разбит на папки `Entities / Dto / Mapping / Services / Controllers`.
@@ -31,7 +31,6 @@ dotnet run --project PaymentService
 ### 1. Namespace = проект + папки
 
 Файл `BookingService/Entities/Booking.cs` -> namespace `BookingService.Entities`.
-Никаких исключений — это требование стайл-гайда.
 
 ### 2. Модель ошибок
 
@@ -42,7 +41,7 @@ dotnet run --project PaymentService
 
 Коды (из части 2 ТЗ): 200, 201, 400, 401, 402, 403, 404, 500.
 
-Чтобы добавить новую бизнес-ошибку — заводишь класс в `Shared/Errors/`,
+Чтобы добавить новую бизнес-ошибку — заводим класс в `Shared/Errors/`,
 наследуешь `DomainException`, проставляешь `StatusCode`. Всё, middleware подхватит.
 
 ### 3. Конвенции DTO
