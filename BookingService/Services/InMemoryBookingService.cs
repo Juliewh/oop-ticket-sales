@@ -22,24 +22,26 @@ public class InMemoryBookingService : IBookingService
     }
 
     public Booking CreateBooking(long clientId, long eventId, IReadOnlyCollection<long> seatIds)
-    {
-        if (seatIds is null || seatIds.Count == 0)
-            throw new ArgumentException("At least one seat is required", nameof(seatIds));
+{
+    if (clientId <= 0)
+        throw new ArgumentException("Client id must be positive", nameof(clientId));
 
-        // TODO (rule 12): reserve all seats atomically. If the mock fails on any seat,
-        // release everything already reserved and throw SeatNotAvailableException.
-        var reserved = _eventsClient.TryReserveSeats(eventId, seatIds);
+    if (eventId <= 0)
+        throw new ArgumentException("Event id must be positive", nameof(eventId));
 
-        if (!reserved)
-            throw new SeatNotAvailableException(seatIds.First());
+    if (seatIds is null || seatIds.Count == 0)
+        throw new ArgumentException("At least one seat is required", nameof(seatIds));
 
-        var bookingList = BookingList.Create(_bookingLists.NextId(), seatIds);
-        _bookingLists.Add(bookingList);
+    if (seatIds.Distinct().Count() != seatIds.Count)
+        throw new ArgumentException("Seats must not be duplicated", nameof(seatIds));
 
-        var booking = Booking.Create(_bookings.NextId(), clientId, eventId, bookingList.Id, DateTime.UtcNow);
+    var reserved = _eventsClient.TryReserveSeats(eventId, seatIds);
 
-        return _bookings.Add(booking);
-    }
+    if (!reserved)
+        throw new SeatNotAvailableException(seatIds.First());
+
+    return CreateBookingForReservedSeats(clientId, eventId, seatIds);
+}
 
     public Booking GetBooking(long bookingId)
         => FindBooking(bookingId) ?? throw new BookingNotFoundException(bookingId);
@@ -64,4 +66,24 @@ public class InMemoryBookingService : IBookingService
 
         // TODO (rule 11 / rule 8): release the seats of this booking back to the Events mock.
     }
+
+    private Booking CreateBookingForReservedSeats(long clientId, long eventId, IReadOnlyCollection<long> seatIds)
+{
+    try
+    {
+        var bookingList = BookingList.Create(_bookingLists.NextId(), seatIds);
+        _bookingLists.Add(bookingList);
+
+        var booking = Booking.Create(_bookings.NextId(), clientId, eventId, bookingList.Id, DateTime.UtcNow);
+
+        return _bookings.Add(booking);
+    }
+    catch
+    {
+        // Release the seats so a failed booking does not leak reservations (rule 12).
+        _eventsClient.ReleaseSeats(eventId, seatIds);
+
+        throw;
+    }
+}
 }
