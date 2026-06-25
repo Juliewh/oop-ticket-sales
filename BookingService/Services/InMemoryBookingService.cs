@@ -72,9 +72,7 @@ public class InMemoryBookingService : IBookingService
     {
         var booking = GetBooking(bookingId);
 
-        booking.Cancel();
-
-        // TODO (rule 11 / rule 8): release the seats of this booking back to the Events mock.
+        ReleaseBooking(booking);
     }
 
     private Booking CreateBookingForReservedSeats(long clientId, long eventId, IReadOnlyCollection<long> seatIds)
@@ -98,6 +96,9 @@ public class InMemoryBookingService : IBookingService
     }
 
     private void CancelExpiredBooking(Booking booking)
+        => ReleaseBooking(booking);
+    
+    private void ReleaseBooking(Booking booking)
     {
         var bookingList = _bookingLists.Find(booking.BookingListId);
 
