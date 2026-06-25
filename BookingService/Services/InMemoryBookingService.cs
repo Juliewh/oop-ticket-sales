@@ -38,7 +38,11 @@ public class InMemoryBookingService : IBookingService
     var reserved = _eventsClient.TryReserveSeats(eventId, seatIds);
 
     if (!reserved)
-        throw new SeatNotAvailableException(seatIds.First());
+    {
+        var takenSeatId = _eventsClient.FindReservedSeat(seatIds);
+
+        throw new SeatNotAvailableException(takenSeatId ?? seatIds.First());
+    }
 
     return CreateBookingForReservedSeats(clientId, eventId, seatIds);
 }
