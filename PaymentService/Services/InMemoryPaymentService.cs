@@ -21,16 +21,24 @@ public class InMemoryPaymentService : IPaymentService
 
     public Payment ProcessPayment(long clientId, long bookingId, decimal cost)
     {
-        // TODO (rule 13): reject if this booking already has a succeed payment.
-        var payment = Payment.Create(_payments.NextId(), clientId, bookingId, cost);
+        if (clientId <= 0)
+            throw new ArgumentException("Client id must be positive", nameof(clientId));
 
-        // TODO (rule 3): treat this as a transaction. On bank failure throw
-        // PaymentFailedException so the booking gets cancelled upstream (rule 7).
+        if (bookingId <= 0)
+            throw new ArgumentException("Booking id must be positive", nameof(bookingId));
+
+        if (cost < 0)
+            throw new ArgumentException("Cost must not be negative", nameof(cost));
+
+        if (HasSucceedPayment(bookingId))
+            throw new PaymentFailedException($"Booking {bookingId} is already paid");
+
         var charged = _bankClient.TryCharge(clientId, cost);
 
         if (!charged)
             throw new PaymentFailedException("bank declined the charge");
 
+        var payment = Payment.Create(_payments.NextId(), clientId, bookingId, cost);
         payment.MarkSucceed();
 
         return _payments.Add(payment);
@@ -53,4 +61,9 @@ public class InMemoryPaymentService : IPaymentService
         if (!_payments.TryRemove(paymentId))
             throw new PaymentNotFoundException(paymentId);
     }
+
+    private bool HasSucceedPayment(long bookingId)
+        => _payments
+            .GetAll()
+            .Any(payment => payment.BookingId == bookingId && payment.IsSucceed);
 }
