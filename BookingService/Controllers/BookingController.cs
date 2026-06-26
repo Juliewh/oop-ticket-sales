@@ -26,6 +26,14 @@ public class BookingController : ControllerBase
 
         return BookingMapping.ToDto.Compile().Invoke(booking);
     }
+    
+    [HttpPost("pay/{id}")]
+    public BookingDto Pay(long id, [FromQuery] decimal cost)
+    {
+        var booking = _bookingService.PayBooking(id, cost);
+
+        return BookingMapping.ToDto.Compile().Invoke(booking);
+    }
 
     [HttpGet("getAll")]
     public IReadOnlyCollection<BookingDto> GetAll()

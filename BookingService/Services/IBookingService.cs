@@ -8,6 +8,8 @@ public interface IBookingService
 
     Booking GetBooking(long bookingId);
 
+    Booking PayBooking(long bookingId, decimal cost);
+
     Booking? FindBooking(long bookingId);
 
     IReadOnlyCollection<Booking> GetAllBookings();
