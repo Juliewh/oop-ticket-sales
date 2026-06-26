@@ -10,15 +10,20 @@ public class InMemoryBookingService : IBookingService
     private readonly InMemoryStore<Booking> _bookings;
     private readonly InMemoryStore<BookingList> _bookingLists;
     private readonly IEventsClient _eventsClient;
+    private readonly IPaymentGateway _paymentGateway;
 
-    public InMemoryBookingService(IEventsClient eventsClient)
+    public InMemoryBookingService(IEventsClient eventsClient, IPaymentGateway paymentGateway)
     {
         if (eventsClient is null)
             throw new ArgumentNullException(nameof(eventsClient));
 
+        if (paymentGateway is null)
+            throw new ArgumentNullException(nameof(paymentGateway));
+
         _bookings = new InMemoryStore<Booking>();
         _bookingLists = new InMemoryStore<BookingList>();
         _eventsClient = eventsClient;
+        _paymentGateway = paymentGateway;
     }
 
     public Booking CreateBooking(long clientId, long eventId, IReadOnlyCollection<long> seatIds)
@@ -53,6 +58,29 @@ public class InMemoryBookingService : IBookingService
 
         if (booking.IsExpired(DateTime.UtcNow))
             CancelExpiredBooking(booking);
+
+        return booking;
+    }
+    public Booking PayBooking(long bookingId, decimal cost)
+    {
+        if (cost < 0)
+            throw new ArgumentException("Cost must not be negative", nameof(cost));
+
+        var booking = GetBooking(bookingId);
+
+        if (booking.Status is not BookingStatus.Reserved)
+            throw new InvalidOperationException($"Booking {bookingId} cannot be paid in status {booking.Status}");
+
+        var paid = _paymentGateway.TryPay(booking.ClientId, bookingId, cost);
+
+        if (!paid)
+        {
+            ReleaseBooking(booking);
+
+            throw new PaymentFailedException($"Payment for booking {bookingId} failed");
+        }
+
+        booking.MarkPaid();
 
         return booking;
     }
