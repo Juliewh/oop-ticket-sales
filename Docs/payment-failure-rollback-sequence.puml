@@ -1,0 +1,23 @@
+@startuml
+title Payment failure or timeout with booking rollback
+
+actor Client
+participant Booking
+participant Events
+participant Payment
+participant Bank
+
+Client -> Booking: POST /booking/add
+Booking -> Events: TryReserveSeats(eventId, seatIds)
+Events --> Booking: reserved
+Booking --> Client: booking Reserved
+
+Client -> Booking: POST /booking/pay/{id}
+Booking -> Payment: POST /payment/add
+Payment -> Bank: TryCharge(clientId, cost)
+Bank --> Payment: decline or timeout
+Payment --> Booking: error or no success
+Booking -> Events: ReleaseSeats(eventId, seatIds)
+Booking --> Client: 402 Payment failed
+
+@enduml

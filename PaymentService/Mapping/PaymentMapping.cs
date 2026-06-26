@@ -11,7 +11,7 @@ public static class PaymentMapping
         Id = payment.Id,
         Cost = payment.Cost,
         IsSucceed = payment.IsSucceed,
-        TicketId = payment.BookingId,
+        TicketIds = payment.TicketIds,
         ClientId = payment.ClientId,
     };
 }

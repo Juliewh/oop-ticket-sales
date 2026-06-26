@@ -6,5 +6,5 @@ public interface IEventsClient
 
     void ReleaseSeats(long eventId, IReadOnlyCollection<long> seatIds);
 
-    long? FindReservedSeat(IReadOnlyCollection<long> seatIds);
+    long? FindReservedSeat(long eventId, IReadOnlyCollection<long> seatIds);
 }

@@ -1,0 +1,30 @@
+@startuml
+title Successful booking, payment and ticket issue
+
+actor Client
+participant Booking
+participant Users
+participant Events
+participant Payment
+participant Bank
+participant Tickets
+
+Client -> Booking: POST /booking/add
+Booking -> Users: IsRegistered(clientId)
+Users --> Booking: registered
+Booking -> Events: TryReserveSeats(eventId, seatIds)
+Events --> Booking: reserved
+Booking --> Client: booking Reserved
+
+Client -> Booking: POST /booking/pay/{id}
+Booking -> Payment: POST /payment/add
+Payment -> Bank: TryCharge(clientId, cost)
+Bank --> Payment: success
+loop for each reserved seat
+    Payment -> Tickets: IssueTicket(clientId, eventId, seatId)
+    Tickets --> Payment: ticketId
+end
+Payment --> Booking: payment Succeed
+Booking --> Client: booking Paid
+
+@enduml

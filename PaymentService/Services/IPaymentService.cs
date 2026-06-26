@@ -4,7 +4,7 @@ namespace PaymentService.Services;
 
 public interface IPaymentService
 {
-    Payment ProcessPayment(long clientId, long bookingId, decimal cost);
+    Payment ProcessPayment(long clientId, long bookingId, long eventId, IReadOnlyCollection<long> seatIds, decimal cost);
 
     Payment GetPayment(long paymentId);
 

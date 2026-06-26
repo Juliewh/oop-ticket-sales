@@ -14,15 +14,19 @@ public class PaymentServiceGateway : IPaymentGateway
         _paymentService = paymentService;
     }
 
-    public bool TryPay(long clientId, long bookingId, decimal cost)
+    public bool TryPay(long clientId, long bookingId, long eventId, IReadOnlyCollection<long> seatIds, decimal cost)
     {
         try
         {
-            var payment = _paymentService.ProcessPayment(clientId, bookingId, cost);
+            var payment = _paymentService.ProcessPayment(clientId, bookingId, eventId, seatIds, cost);
 
             return payment.IsSucceed;
         }
         catch (Shared.Errors.PaymentFailedException)
+        {
+            return false;
+        }
+        catch (TimeoutException)
         {
             return false;
         }
