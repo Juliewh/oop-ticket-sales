@@ -4,6 +4,7 @@ namespace BookingService.Entities;
 
 public class Booking : IEntity
 {
+    private static readonly TimeSpan PaymentTimeout = TimeSpan.FromMinutes(30);
     private Booking(long id, long clientId, long eventId, long bookingListId, DateTime dateTime)
     {
         if (clientId <= 0)
@@ -38,7 +39,9 @@ public class Booking : IEntity
     public static Booking Create(long id, long clientId, long eventId, long bookingListId, DateTime dateTime)
         => new Booking(id, clientId, eventId, bookingListId, dateTime);
 
-    // Keeps the booking invariant: status only moves forward, never back to Reserved.
+    public bool IsExpired(DateTime now)
+    => Status is BookingStatus.Reserved && now - DateTime > PaymentTimeout;
+
     public void MarkPaid()
     {
         if (Status is not BookingStatus.Reserved)

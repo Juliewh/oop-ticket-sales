@@ -25,6 +25,20 @@ public class FakeEventsClient : IEventsClient
         return true;
     }
 
+    public long? FindReservedSeat(IReadOnlyCollection<long> seatIds)
+{
+    if (seatIds is null)
+        throw new ArgumentNullException(nameof(seatIds));
+
+    foreach (var seatId in seatIds)
+    {
+        if (_reservedSeatIds.Contains(seatId))
+            return seatId;
+    }
+
+    return null;
+}
+
     public void ReleaseSeats(long eventId, IReadOnlyCollection<long> seatIds)
     {
         if (seatIds is null)
