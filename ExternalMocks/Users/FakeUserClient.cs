@@ -1,8 +1,38 @@
 namespace ExternalMocks.Users;
 
-// Fake User dependency: treats every positive client id as a registered user.
 public class FakeUserClient : IUserClient
 {
+    private readonly HashSet<long> _registeredClientIds;
+
+    public FakeUserClient()
+        : this(new[] { 1L })
+    {
+    }
+
+    public FakeUserClient(IReadOnlyCollection<long> registeredClientIds)
+    {
+        if (registeredClientIds is null)
+            throw new ArgumentNullException(nameof(registeredClientIds));
+
+        _registeredClientIds = registeredClientIds.ToHashSet();
+    }
+
+    public void Register(long clientId)
+    {
+        if (clientId <= 0)
+            throw new ArgumentException("Client id must be positive", nameof(clientId));
+
+        _registeredClientIds.Add(clientId);
+    }
+
+    public void Unregister(long clientId)
+    {
+        if (clientId <= 0)
+            throw new ArgumentException("Client id must be positive", nameof(clientId));
+
+        _registeredClientIds.Remove(clientId);
+    }
+
     public bool IsRegistered(long clientId)
-        => clientId > 0;
+        => _registeredClientIds.Contains(clientId);
 }

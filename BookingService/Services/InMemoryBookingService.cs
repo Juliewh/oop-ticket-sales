@@ -1,5 +1,6 @@
 using BookingService.Entities;
 using ExternalMocks.Events;
+using ExternalMocks.Users;
 using Shared.Errors;
 using Shared.Storage;
 
@@ -11,8 +12,9 @@ public class InMemoryBookingService : IBookingService
     private readonly InMemoryStore<BookingList> _bookingLists;
     private readonly IEventsClient _eventsClient;
     private readonly IPaymentGateway _paymentGateway;
+    private readonly IUserClient _userClient;
 
-    public InMemoryBookingService(IEventsClient eventsClient, IPaymentGateway paymentGateway)
+    public InMemoryBookingService(IEventsClient eventsClient, IPaymentGateway paymentGateway, IUserClient userClient)
     {
         if (eventsClient is null)
             throw new ArgumentNullException(nameof(eventsClient));
@@ -20,16 +22,23 @@ public class InMemoryBookingService : IBookingService
         if (paymentGateway is null)
             throw new ArgumentNullException(nameof(paymentGateway));
 
+        if (userClient is null)
+            throw new ArgumentNullException(nameof(userClient));
+
         _bookings = new InMemoryStore<Booking>();
         _bookingLists = new InMemoryStore<BookingList>();
         _eventsClient = eventsClient;
         _paymentGateway = paymentGateway;
+        _userClient = userClient;
     }
 
     public Booking CreateBooking(long clientId, long eventId, IReadOnlyCollection<long> seatIds)
     {
         if (clientId <= 0)
             throw new ArgumentException("Client id must be positive", nameof(clientId));
+
+        if (!_userClient.IsRegistered(clientId))
+            throw new UserNotRegisteredException(clientId);
 
         if (eventId <= 0)
             throw new ArgumentException("Event id must be positive", nameof(eventId));
@@ -42,9 +51,9 @@ public class InMemoryBookingService : IBookingService
 
         var reserved = _eventsClient.TryReserveSeats(eventId, seatIds);
 
-         if (!reserved)
+        if (!reserved)
         {
-            var takenSeatId = _eventsClient.FindReservedSeat(seatIds);
+            var takenSeatId = _eventsClient.FindReservedSeat(eventId, seatIds);
 
             throw new SeatNotAvailableException(takenSeatId ?? seatIds.First());
         }
@@ -71,7 +80,10 @@ public class InMemoryBookingService : IBookingService
         if (booking.Status is not BookingStatus.Reserved)
             throw new InvalidOperationException($"Booking {bookingId} cannot be paid in status {booking.Status}");
 
-        var paid = _paymentGateway.TryPay(booking.ClientId, bookingId, cost);
+        var bookingList = _bookingLists.Find(booking.BookingListId)
+            ?? throw new InvalidOperationException($"Booking list {booking.BookingListId} is not found");
+
+        var paid = _paymentGateway.TryPay(booking.ClientId, bookingId, booking.EventId, bookingList.SeatIds, cost);
 
         if (!paid)
         {

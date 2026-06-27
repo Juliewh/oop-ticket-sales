@@ -22,7 +22,12 @@ public class PaymentController : ControllerBase
     [HttpPost("add")]
     public PaymentDto Add(CreatePaymentRequest request)
     {
-        var payment = _paymentService.ProcessPayment(request.ClientId, request.BookingId, request.Cost);
+        var payment = _paymentService.ProcessPayment(
+            request.ClientId,
+            request.BookingId,
+            request.EventId,
+            request.SeatIds,
+            request.Cost);
 
         return PaymentMapping.ToDto.Compile().Invoke(payment);
     }

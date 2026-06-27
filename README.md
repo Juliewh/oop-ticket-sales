@@ -20,11 +20,12 @@ TicketSales.sln
 
 ```
 dotnet build
-dotnet run --project BookingService
-dotnet run --project PaymentService
+Bank__Outcome=Success dotnet run --project PaymentService --urls http://localhost:5001
+PaymentService__BaseUrl=http://localhost:5001/ dotnet run --project BookingService --urls http://localhost:5000
 ```
 
-(Каждый сервис поднимается отдельно — на этапе 3 они не общаются между собой.)
+Booking вызывает Payment по HTTP через `HttpPaymentGateway`.
+`Bank__Outcome` можно менять на `Success`, `Decline` или `Timeout`.
 
 ## Договорённости до раздачи
 
@@ -52,18 +53,24 @@ dotnet run --project PaymentService
   `BookingService/Mapping/BookingMapping.cs`.
 - Поля enum-типа в сущности, строка в DTO (контракт из ТЗ) — маппер делает преобразование.
 
-## Что осталось по коду (TODO)
+## Что реализовано
 
-Все места, где нужна доменная логика владельца, помечены `// TODO` с номером
-бизнес-правила из ТЗ. Ищи по `TODO` в своём проекте.
-
-- **Booking**: атомарный резерв мест (правило 12), запрет двойной брони (9, 14),
-  таймаут оплаты 30 мин -> автоотмена (11), оркестрация сценария на этапе 4.
-- **Payment**: оплата = транзакция (3), одна бронь оплачивается один раз (13),
-  отмена брони при неудаче (7).
-- **ExternalMocks**: сделать исход банка настраиваемым (успех/отказ/таймаут) для тестов.
+- **Booking**: резерв мест через Events, запрет двойной брони, таймаут оплаты
+  30 минут -> автоотмена, отмена брони с освобождением мест.
+- **Payment**: списание через Bank, одна бронь оплачивается один раз, выдача
+  билетов через Tickets после успешной оплаты.
+- **ExternalMocks**: банк настраивается на успех/отказ/таймаут; Events, Tickets и Users
+  поддерживают пограничные сценарии для тестов.
 
 ## Этап 4
 
-Синхронная связка Booking -> Payment (HTTP-клиент), основной сценарий
-«бронь -> оплата -> билет -> откат при сбое», замер SLA, тесты на corner-кейсы 7-14.
+Синхронная связка Booking -> Payment сделана через HTTP-клиент. Основной сценарий:
+«бронь -> оплата -> билет -> откат при сбое».
+
+SLA основного сценария:
+
+```
+BOOKING_URL=http://localhost:5000 REQUESTS=20 MAX_MS=2000 Scripts/measure-sla.sh
+```
+
+UML sequence-диаграммы лежат в `Docs/*.puml`.

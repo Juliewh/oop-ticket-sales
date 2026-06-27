@@ -8,7 +8,7 @@ public record PaymentDto
 
     public bool IsSucceed { get; init; }
 
-    public long TicketId { get; init; }
+    public IReadOnlyCollection<long> TicketIds { get; init; } = new List<long>();
 
     public long ClientId { get; init; }
 }
